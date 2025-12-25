@@ -1,6 +1,8 @@
-# HexForge Surface Engine
+# hexforge-glyphengine
 
-HexForge Surface Engine (HSE) is a texture-first surface and enclosure generation engine for fabrication workflows.
+
+hexforge-glyphengine
+ (HGE) is a texture-first surface and enclosure generation engine for fabrication workflows.
 
 Primary outputs:
 - Displacement-ready texture assets (heightmaps, optional normals/masks)
