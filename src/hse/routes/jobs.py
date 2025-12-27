@@ -12,7 +12,7 @@ from hse.contracts.envelopes import job_status_envelope, now_iso
 from hse.fs.paths import assets_root, job_dir, manifest_path, job_json_path
 from hse.fs.writer import write_manifest
 
-router = APIRouter(prefix="/api/surface", tags=["surface"])
+router = APIRouter(tags=["surface"])
 
 
 def infer_status_from_files(job_id: str) -> str:
