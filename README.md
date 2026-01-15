@@ -22,6 +22,51 @@ GlyphEngine implements the **Surface v1 API**, which focuses on generating
 repeatable, displacement-ready surface detail and parametric enclosures for
 3D printing, CNC, and hybrid CAD workflows.
 
+## Quickstart (Surface v1.1)
+
+1. Start the API (example):
+  - `uvicorn hse.main:app --host 0.0.0.0 --port 8092`
+2. Create a job (returns queued job_status):
+  - `JOB_ID=$(curl -sk -X POST http://127.0.0.1:8092/api/surface/jobs -H "Content-Type: application/json" -d '{}' | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")`
+3. Run the worker (writes placeholders, marks complete):
+  - `python scripts/run_surface_worker.py "$JOB_ID"`
+4. Inspect status and manifest:
+  - `curl -sk "http://127.0.0.1:8092/api/surface/jobs/$JOB_ID"`
+  - `curl -sk "http://127.0.0.1:8092/api/surface/jobs/$JOB_ID/manifest"`
+5. Public assets (served by NGINX):
+  - `http://127.0.0.1:8092/assets/surface/$JOB_ID/job_manifest.json`
+
+### Filesystem layout
+
+- `/data/hexforge3d/surface/<job_id>/`
+  - `previews/{hero,iso,top,side}.png`
+  - `textures/{texture.png,heightmap.png}`
+  - `enclosure/enclosure.stl`
+  - `job.json` (service doc) and `job_manifest.json` (contract)
+
+### Contracts and validation
+
+- All envelopes validate against `schemas/common` via `hexforge_contracts`.
+- `job_id` must be filesystem-safe (`A-Za-z0-9_-`, min 3 chars).
+- Manifest version is fixed to `"v1"`; service is `"hexforge-glyphengine"`.
+
+### Acceptance checklist
+
+```
+JOB_ID=$(curl -sk -X POST https://hexforgelabs.com/api/surface/jobs \
+  -H "Content-Type: application/json" -d '{}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
+
+docker exec -it hexforge-glyphengine \ 
+  python3 /app/scripts/run_surface_worker.py "$JOB_ID"
+
+curl -sk "https://hexforgelabs.com/api/surface/jobs/$JOB_ID"
+curl -sk "https://hexforgelabs.com/api/surface/jobs/$JOB_ID/manifest"
+curl -sk "https://hexforgelabs.com/assets/surface/$JOB_ID/job_manifest.json"
+```
+
+Expected: status moves to `complete`, asset URLs resolve, schemas validate.
+
 
 
 ## Primary Outputs

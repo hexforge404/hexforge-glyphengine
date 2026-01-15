@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexforgelabs.com/schemas/job_manifest.schema.json",
+  "title": "HexForge job_manifest (Surface v1)",
+  "type": "object",
+  "required": ["version", "job_id", "service", "updated_at", "public_root", "public"],
+  "properties": {
+    "version": { "type": "string", "const": "v1" },
+    "job_id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "service": { "type": "string", "const": "hexforge-glyphengine" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "subfolder": { "type": ["string", "null"], "minLength": 1 },
+    "public_root": {
+      "type": "string",
+      "pattern": "^/assets/surface(/.*)?$"
+    },
+    "public": {
+      "type": "object",
+      "required": ["job_json", "enclosure", "textures", "previews"],
+      "properties": {
+        "job_json": { "type": "string", "pattern": "^/assets/.*" },
+        "enclosure": {
+          "type": "object",
+          "required": ["stl"],
+          "properties": {
+            "stl": { "type": "string", "pattern": "^/assets/.*" }
+          },
+          "additionalProperties": false
+        },
+        "textures": {
+          "type": "object",
+          "required": ["texture_png", "heightmap_png"],
+          "properties": {
+            "texture_png": { "type": "string", "pattern": "^/assets/.*" },
+            "heightmap_png": { "type": "string", "pattern": "^/assets/.*" }
+          },
+          "additionalProperties": false
+        },
+        "previews": {
+          "type": "object",
+          "required": ["hero"],
+          "properties": {
+            "hero": { "type": "string", "pattern": "^/assets/.*" },
+            "iso": { "type": "string", "pattern": "^/assets/.*" },
+            "top": { "type": "string", "pattern": "^/assets/.*" },
+            "side": { "type": "string", "pattern": "^/assets/.*" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

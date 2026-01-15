@@ -6,12 +6,12 @@ BASE="${BASE:-http://127.0.0.1:8092/api/surface}"
 docker exec -i hexforge-glyphengine python - <<PY
 import json, urllib.request
 from jsonschema import validate
-from hexforge_contracts import load_schema
+from hse.contracts import load_contract_schema
 from hse.fs.paths import manifest_path
 
 base = "${BASE}"
-status_schema = load_schema("job_status.schema.json")
-manifest_schema = load_schema("job_manifest.schema.json")
+status_schema = load_contract_schema("job_status.schema.json")
+manifest_schema = load_contract_schema("job_manifest.schema.json")
 
 req = urllib.request.Request(
     f"{base}/jobs",

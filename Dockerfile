@@ -26,6 +26,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src/hse /app/hse
 COPY scripts /app/scripts
+COPY schemas /app/schemas
 
 
 # (Optional) if you ever write temp stuff under /app, this avoids surprises

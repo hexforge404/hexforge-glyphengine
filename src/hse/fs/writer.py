@@ -4,10 +4,9 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from hse.contracts import validate_contract
 from hse.contracts.envelopes import job_manifest_v1, now_iso
 from hse.fs.paths import job_json_path, manifest_path, public_root, sanitize_subfolder
-
-from hexforge_contracts import load_schema, validate_json
 
 
 def write_json_atomic(path: Path, obj: Any) -> None:
@@ -49,6 +48,26 @@ def _default_public_manifest(public_base: str) -> Dict[str, Any]:
             "iso": f"{base}/previews/iso.png",
             "top": f"{base}/previews/top.png",
             "side": f"{base}/previews/side.png",
+        },
+    }
+
+
+def _default_artifacts() -> Dict[str, Any]:
+    """Canonical relative artifact paths written by the worker."""
+    return {
+        "job_json": "job.json",
+        "previews": {
+            "hero": "previews/hero.png",
+            "iso": "previews/iso.png",
+            "top": "previews/top.png",
+            "side": "previews/side.png",
+        },
+        "textures": {
+            "texture_png": "textures/texture.png",
+            "heightmap_png": "textures/heightmap.png",
+        },
+        "models": {
+            "enclosure_stl": "enclosure/enclosure.stl",
         },
     }
 
@@ -100,8 +119,7 @@ def write_manifest(
 
     p = manifest_path(job_id, subfolder=subfolder)
 
-    schema = load_schema("job_manifest.schema.json")
-    validate_json(doc, schema)
+    validate_contract(doc, "job_manifest.schema.json")
 
     write_json_atomic(p, doc)
     return p
@@ -135,15 +153,13 @@ def write_surface_job_json(
         "updated_at": updated_at,
         "public_base_url": public_root(job_id, subfolder=subfolder),
         "output_dir": str(job_json_path(job_id, subfolder=subfolder).parent),
-        "params": params,
-        "artifacts": artifacts or {},
+        "params": params or {},
+        "artifacts": artifacts or _default_artifacts(),
     }
 
     p = job_json_path(job_id, subfolder=subfolder)
 
-    # Optional strict validation later (if/when surface_job.schema.json is in contracts)
-    # schema = load_schema("surface_job.schema.json")
-    # validate_json(doc, schema)
+    validate_contract(doc, "job_json.schema.json")
 
     write_json_atomic(p, doc)
     return p

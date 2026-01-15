@@ -5,8 +5,20 @@ import re
 from pathlib import Path
 from typing import Optional
 
+# Only allow filesystem-safe identifiers (no traversal, whitespace, or dots)
+_SAFE_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 # Only allow a single safe folder name (no slashes, dots, whitespace, traversal)
-_SUBFOLDER_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_SUBFOLDER_RE = _SAFE_RE
+
+
+def assert_valid_job_id(value: str) -> str:
+    """Ensure job_id is filesystem-safe and at least 3 characters."""
+    v = str(value or "").strip()
+    if len(v) < 3:
+        raise ValueError("job_id must be at least 3 characters")
+    if not _SAFE_RE.match(v):
+        raise ValueError("job_id must contain only letters, numbers, underscore, or dash")
+    return v
 
 
 def sanitize_subfolder(value: Optional[str]) -> Optional[str]:
@@ -38,10 +50,11 @@ def public_prefix() -> str:
 
 
 def job_dir(job_id: str, *, subfolder: Optional[str] = None) -> Path:
+    jid = assert_valid_job_id(job_id)
     sf = sanitize_subfolder(subfolder)
     if sf:
-        return assets_root() / sf / job_id
-    return assets_root() / job_id
+        return assets_root() / sf / jid
+    return assets_root() / jid
 
 
 def public_root(job_id: str, *, subfolder: Optional[str] = None) -> str:
@@ -49,10 +62,11 @@ def public_root(job_id: str, *, subfolder: Optional[str] = None) -> str:
     Public URL base for a given job.
     Example: /assets/surface/<subfolder?>/<job_id>
     """
+    jid = assert_valid_job_id(job_id)
     sf = sanitize_subfolder(subfolder)
     if sf:
-        return f"{public_prefix()}/{sf}/{job_id}"
-    return f"{public_prefix()}/{job_id}"
+        return f"{public_prefix()}/{sf}/{jid}"
+    return f"{public_prefix()}/{jid}"
 
 
 def manifest_path(job_id: str, *, subfolder: Optional[str] = None) -> Path:
@@ -65,6 +79,7 @@ def job_json_path(job_id: str, *, subfolder: Optional[str] = None) -> Path:
 
 
 __all__ = [
+    "assert_valid_job_id",
     "sanitize_subfolder",
     "assets_root",
     "public_prefix",

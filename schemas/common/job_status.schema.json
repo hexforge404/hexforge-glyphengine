@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexforgelabs.com/schemas/job_status.schema.json",
+  "title": "HexForge job_status (v1)",
+  "type": "object",
+  "required": ["job_id", "status", "service", "updated_at"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Filesystem-safe job identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "complete", "failed"]
+    },
+    "service": { "type": "string", "const": "hexforge-glyphengine" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+    "message": { "type": "string", "minLength": 1 },
+    "error": {
+      "type": "object",
+      "required": ["message"],
+      "properties": {
+        "message": { "type": "string", "minLength": 1 },
+        "code": { "type": ["string", "null"] },
+        "detail": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "public_root": {
+          "type": "string",
+          "pattern": "^/assets/surface(/.*)?$"
+        },
+        "job_manifest": { "type": "string", "pattern": "^/assets/.*" },
+        "job_json": { "type": "string", "pattern": "^/assets/.*" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

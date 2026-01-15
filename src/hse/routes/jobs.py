@@ -7,10 +7,10 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 
 from hse.contracts.envelopes import job_status, now_iso
-from hse.fs.paths import job_dir, manifest_path, public_root, sanitize_subfolder
+from hse.contracts import validate_contract
+from hse.fs.paths import assert_valid_job_id, job_dir, manifest_path, public_root, sanitize_subfolder
 from hse.fs.writer import write_manifest, write_surface_job_json
 from fastapi.responses import JSONResponse
-from hexforge_contracts import load_schema, validate_json
 
 
 
@@ -28,6 +28,15 @@ def infer_status_from_files(job_id: str, *, subfolder: Optional[str] = None) -> 
     stl  = root / "enclosure" / "enclosure.stl"
     tex  = root / "textures" / "texture.png"
     hmap = root / "textures" / "heightmap.png"
+    job_json = root / "job.json"
+
+    job_status_hint: Optional[str] = None
+    if job_json.exists():
+        try:
+            doc = json.loads(job_json.read_text(encoding="utf-8"))
+            job_status_hint = doc.get("status") if isinstance(doc, dict) else None
+        except Exception:
+            job_status_hint = None
 
     # ✅ COMPLETE only when required outputs exist AND are non-empty
     if (
@@ -42,11 +51,13 @@ def infer_status_from_files(job_id: str, *, subfolder: Optional[str] = None) -> 
     if (
         (root / "textures").exists()
         or (root / "enclosure").exists()
-        or (root / "job.json").exists()
+        or job_status_hint == "running"
     ):
         return "running"
 
-    # ⏳ Otherwise still queued
+    # ⏳ Otherwise still queued (or defer to hint)
+    if job_status_hint in {"queued", "failed"}:
+        return job_status_hint
     return "queued"
 
 
@@ -89,7 +100,7 @@ async def create_job(req: Request) -> Dict[str, Any]:
 
     pub_root = public_root(job_id, subfolder=subfolder)
 
-    return job_status(
+    envelope = job_status(
         job_id=job_id,
         status="queued",
         service="hexforge-glyphengine",
@@ -100,6 +111,8 @@ async def create_job(req: Request) -> Dict[str, Any]:
             "job_json": f"{pub_root}/job.json",
         },
     )
+    validate_contract(envelope, "job_status.schema.json")
+    return envelope
 
 
 @router.get("/jobs/{job_id}")
@@ -111,6 +124,11 @@ async def get_job(job_id: str, subfolder: Optional[str] = None) -> Dict[str, Any
     Deterministic lookup requires the correct subfolder if the job was created
     under one: /assets/surface/<subfolder>/<job_id>/...
     """
+    try:
+        job_id = assert_valid_job_id(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     subfolder = sanitize_subfolder(subfolder)
 
     root = job_dir(job_id, subfolder=subfolder)
@@ -128,7 +146,7 @@ async def get_job(job_id: str, subfolder: Optional[str] = None) -> Dict[str, Any
 
         status = infer_status_from_files(job_id, subfolder=subfolder)
 
-        return job_status(
+        envelope = job_status(
             job_id=job_id,
             status=status,
             service="hexforge-glyphengine",
@@ -139,10 +157,12 @@ async def get_job(job_id: str, subfolder: Optional[str] = None) -> Dict[str, Any
                 "job_json": f"{pub_root}/job.json",
             },
         )
+        validate_contract(envelope, "job_status.schema.json")
+        return envelope
 
     # Fallback if manifest missing
     status = infer_status_from_files(job_id, subfolder=subfolder)
-    return job_status(
+    envelope = job_status(
         job_id=job_id,
         status=status,
         service="hexforge-glyphengine",
@@ -153,10 +173,17 @@ async def get_job(job_id: str, subfolder: Optional[str] = None) -> Dict[str, Any
             "job_json": f"{pub_root}/job.json",
         },
     )
+    validate_contract(envelope, "job_status.schema.json")
+    return envelope
 
 
 @router.get("/jobs/{job_id}/manifest")
 async def get_manifest(job_id: str, subfolder: Optional[str] = None) -> JSONResponse:
+    try:
+        job_id = assert_valid_job_id(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     subfolder = sanitize_subfolder(subfolder)
 
     root = job_dir(job_id, subfolder=subfolder)
@@ -169,7 +196,6 @@ async def get_manifest(job_id: str, subfolder: Optional[str] = None) -> JSONResp
 
     doc = json.loads(mpath.read_text(encoding="utf-8"))
 
-    schema = load_schema("job_manifest.schema.json")
-    validate_json(doc, schema)
+    validate_contract(doc, "job_manifest.schema.json")
 
     return JSONResponse(content=doc)

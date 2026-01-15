@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexforgelabs.com/schemas/job_json.schema.json",
+  "title": "HexForge GlyphEngine job.json (Surface v1)",
+  "type": "object",
+  "required": [
+    "job_id",
+    "service",
+    "version",
+    "status",
+    "created_at",
+    "updated_at",
+    "public_base_url",
+    "output_dir",
+    "artifacts",
+    "params"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "service": { "type": "string", "const": "hexforge-glyphengine" },
+    "version": { "type": "string", "const": "v1" },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "complete", "failed"]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "public_base_url": {
+      "type": "string",
+      "pattern": "^/assets/surface(/.*)?$"
+    },
+    "output_dir": { "type": "string", "minLength": 1 },
+    "error": {
+      "type": ["object", "null"],
+      "required": ["message"],
+      "properties": {
+        "message": { "type": "string" },
+        "code": { "type": ["string", "null"] },
+        "detail": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["job_json", "previews", "textures", "models"],
+      "properties": {
+        "job_json": { "type": "string", "minLength": 1 },
+        "previews": {
+          "type": "object",
+          "required": ["hero", "iso", "top", "side"],
+          "properties": {
+            "hero": { "type": "string", "minLength": 1 },
+            "iso": { "type": "string", "minLength": 1 },
+            "top": { "type": "string", "minLength": 1 },
+            "side": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        "textures": {
+          "type": "object",
+          "required": ["texture_png", "heightmap_png"],
+          "properties": {
+            "texture_png": { "type": "string", "minLength": 1 },
+            "heightmap_png": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        "models": {
+          "type": "object",
+          "required": ["enclosure_stl"],
+          "properties": {
+            "enclosure_stl": { "type": "string", "minLength": 1 },
+            "enclosure_glb": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "description": "Engine inputs. Accepts arbitrary keys for MVP.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
