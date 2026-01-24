@@ -44,6 +44,16 @@
           },
           "additionalProperties": false
         },
+        "board_case": {
+          "type": "object",
+          "required": ["base", "lid"],
+          "properties": {
+            "base": { "type": "string", "pattern": "^/assets/.*" },
+            "lid": { "type": "string", "pattern": "^/assets/.*" },
+            "panel": { "type": "string", "pattern": "^/assets/.*" }
+          },
+          "additionalProperties": false
+        },
         "textures": {
           "type": "object",
           "required": ["texture_png", "heightmap_png"],
@@ -68,7 +78,8 @@
       "additionalProperties": false,
       "anyOf": [
         { "required": ["enclosure"] },
-        { "required": ["pi4b_case"] }
+        { "required": ["pi4b_case"] },
+        { "required": ["board_case"] }
       ]
     },
     "outputs": {

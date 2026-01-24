@@ -37,8 +37,11 @@ def assets_root() -> Path:
     Root folder where engine writes job folders.
     Mounted in docker-compose as /data/hexforge3d and we use /data/hexforge3d/surface by default.
     """
-    base = os.getenv("SURFACE_OUTPUT_DIR", "/data/hexforge3d/surface")
-    return Path(base)
+    base = Path(os.getenv("SURFACE_OUTPUT_DIR", "/data/hexforge3d/surface")).resolve()
+    # Normalize to ensure final component is "surface" so URLs stay /assets/surface/<subfolder?>/<job_id>
+    if base.name != "surface":
+        base = base / "surface"
+    return base
 
 
 def public_prefix() -> str:

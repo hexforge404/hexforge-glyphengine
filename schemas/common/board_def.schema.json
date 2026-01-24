@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexforgelabs.com/schemas/board_def.schema.json",
+  "title": "Board Definition",
+  "type": "object",
+  "required": ["id", "label", "board_mm", "mount_pattern", "defaults"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+    "label": { "type": "string", "minLength": 1 },
+    "board_mm": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "mount_pattern": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+    "defaults": {
+      "type": "object",
+      "required": ["wall_mm", "clearance_mm", "lid_style"],
+      "properties": {
+        "wall_mm": { "type": "number", "exclusiveMinimum": 0 },
+        "clearance_mm": { "type": "number", "exclusiveMinimum": 0 },
+        "lid_style": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

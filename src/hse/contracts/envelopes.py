@@ -50,12 +50,17 @@ def job_manifest_v1(
     public: Dict[str, Any],
     subfolder: Optional[str] = None,
     updated_at: Optional[str] = None,
+    created_at: Optional[str] = None,
+    started_at: Optional[str] = None,
+    finished_at: Optional[str] = None,
+    outputs: Optional[Any] = None,
+    geometry_check: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     job_manifest.schema.json-compatible structure (v1).
     Must match schema exactly (additionalProperties: false).
     """
-    return {
+    doc: Dict[str, Any] = {
         "version": "v1",
         "job_id": job_id,
         "service": service,
@@ -64,6 +69,19 @@ def job_manifest_v1(
         "public_root": public_root,
         "public": public,
     }
+
+    if created_at:
+        doc["created_at"] = created_at
+    if started_at:
+        doc["started_at"] = started_at
+    if finished_at:
+        doc["finished_at"] = finished_at
+    if outputs is not None:
+        doc["outputs"] = outputs
+    if geometry_check is not None:
+        doc["geometry_check"] = geometry_check
+
+    return doc
 
 
 __all__ = ["now_iso", "job_status", "job_manifest_v1"]

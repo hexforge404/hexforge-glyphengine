@@ -83,12 +83,16 @@
             "enclosure_glb": { "type": ["string", "null"], "pattern": "^/assets/surface/.*" },
             "pi4b_case_base": { "type": "string", "pattern": "^/assets/surface/.*" },
             "pi4b_case_lid": { "type": "string", "pattern": "^/assets/surface/.*" },
-            "pi4b_case_panel": { "type": "string", "pattern": "^/assets/surface/.*" }
+            "pi4b_case_panel": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "board_case_base": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "board_case_lid": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "board_case_panel": { "type": "string", "pattern": "^/assets/surface/.*" }
           },
           "additionalProperties": false,
           "anyOf": [
             { "required": ["enclosure_stl"] },
-            { "required": ["pi4b_case_base", "pi4b_case_lid"] }
+            { "required": ["pi4b_case_base", "pi4b_case_lid"] },
+            { "required": ["board_case_base", "board_case_lid"] }
           ]
         }
       },

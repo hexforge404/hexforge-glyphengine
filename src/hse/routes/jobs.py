@@ -21,6 +21,32 @@ def _nonempty(p):
     return p.exists() and p.is_file() and p.stat().st_size > 0
 
 
+def _normalized_target(value):
+    val = (value or "tile").strip().lower()
+    if val == "board_case":
+        return "board_case"
+    if val == "pi4b_case":
+        return "pi4b_case"
+    return "tile"
+
+
+def _normalized_emboss_mode(value, *, target: str):
+    val = (value or "").strip().lower()
+    if target in {"pi4b_case", "board_case"}:
+        if val in {"panel", "lid", "both"}:
+            return val
+        return "lid"
+    return "tile"
+
+
+def _normalized_board_id(value):
+    try:
+        bid = (value or "pi4b").strip().lower()
+    except Exception:
+        bid = "pi4b"
+    return bid or "pi4b"
+
+
 def infer_status_from_files(job_id: str, *, subfolder: Optional[str] = None) -> str:
     root = job_dir(job_id, subfolder=subfolder)
 
@@ -31,21 +57,40 @@ def infer_status_from_files(job_id: str, *, subfolder: Optional[str] = None) -> 
     job_json = root / "job.json"
 
     job_status_hint: Optional[str] = None
+    params: Dict[str, Any] = {}
     if job_json.exists():
         try:
             doc = json.loads(job_json.read_text(encoding="utf-8"))
             job_status_hint = doc.get("status") if isinstance(doc, dict) else None
+            params = doc.get("params") if isinstance(doc, dict) else {}
         except Exception:
             job_status_hint = None
+            params = {}
+
+    target = _normalized_target((params or {}).get("target"))
+    emboss_mode = _normalized_emboss_mode((params or {}).get("emboss_mode"), target=target)
+
+    # 🚫 Respect explicit failure recorded in job.json
+    if job_status_hint == "failed":
+        return "failed"
 
     # ✅ COMPLETE only when required outputs exist AND are non-empty
-    if (
-        _nonempty(hero)
-        and _nonempty(stl)
-        and _nonempty(tex)
-        and _nonempty(hmap)
-    ):
+    required_files = [hero, tex, hmap]
+    if target in {"pi4b_case", "board_case"}:
+        required_files.append(root / "pi4b_case_base.stl")
+        required_files.append(root / "pi4b_case_lid.stl")
+        if emboss_mode in {"panel", "both"}:
+            required_files.append(root / "pi4b_case_panel.stl")
+    else:
+        required_files.append(stl)
+
+    if all(_nonempty(p) for p in required_files):
         return "complete"
+
+    # If someone wrote "complete" prematurely, downgrade to failed to avoid
+    # falsely advertising downloadable assets that do not exist yet.
+    if job_status_hint == "complete":
+        return "failed"
 
     # 🔄 RUNNING once work has visibly started
     if (
@@ -77,6 +122,9 @@ async def create_job(req: Request) -> Dict[str, Any]:
     job_id = secrets.token_hex(8)
     subfolder = sanitize_subfolder(body.get("subfolder", None))
     created_at = now_iso()
+    target = _normalized_target(body.get("target"))
+    emboss_mode = _normalized_emboss_mode(body.get("emboss_mode"), target=target)
+    board_id = _normalized_board_id(body.get("board")) if target == "board_case" else None
 
     # Write Surface v1 job.json immediately (public doc exists from creation)
     write_surface_job_json(
@@ -86,7 +134,7 @@ async def create_job(req: Request) -> Dict[str, Any]:
         created_at=created_at,
         updated_at=created_at,
         params=body or {},
-        artifacts={},
+        artifacts=None,
     )
 
     # Write contract-valid manifest immediately
@@ -95,6 +143,10 @@ async def create_job(req: Request) -> Dict[str, Any]:
         job_id=job_id,
         subfolder=subfolder,
         updated_at=created_at,
+        created_at=created_at,
+        target=target,
+        emboss_mode=emboss_mode,
+        board_id=board_id,
         # public=None -> writer builds the default contract-shaped public object
     )
 
