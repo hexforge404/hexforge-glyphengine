@@ -1,0 +1,11 @@
+{
+  "id": "pi5",
+  "label": "Raspberry Pi 5",
+  "board_mm": [85, 56],
+  "mount_pattern": "pi5",
+  "defaults": {
+    "wall_mm": 2.4,
+    "clearance_mm": 1.0,
+    "lid_style": "snap"
+  }
+}
