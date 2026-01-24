@@ -1,9 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE="${BASE:-http://127.0.0.1:8092/api/surface}"
+ENGINE_CONTAINER="${HEXFORGE_ENGINE_CONTAINER:-}"
+is_running() {
+    docker ps --format '{{.Names}}' | grep -Fx "$1" >/dev/null 2>&1
+}
 
-docker exec -i hexforge-glyphengine python - <<PY
+if [[ -z "$ENGINE_CONTAINER" ]]; then
+    if is_running "hexforge-surface-engine"; then
+        ENGINE_CONTAINER="hexforge-surface-engine"
+    elif is_running "hexforge-surface-engine-worker"; then
+        ENGINE_CONTAINER="hexforge-surface-engine-worker"
+    else
+        echo "ERROR: no engine container running. Tried hexforge-surface-engine, hexforge-surface-engine-worker." >&2
+        echo "Running containers:" >&2
+        docker ps --format ' - {{.Names}}' >&2
+        exit 1
+    fi
+elif ! is_running "$ENGINE_CONTAINER"; then
+    echo "ERROR: specified HEXFORGE_ENGINE_CONTAINER=$ENGINE_CONTAINER is not running." >&2
+    echo "Running containers:" >&2
+    docker ps --format ' - {{.Names}}' >&2
+    exit 1
+fi
+
+BASE_ROOT="${HEXFORGE_BASE_URL:-http://127.0.0.1:8092}"
+if [[ -z "${HEXFORGE_BASE_URL:-}" && "$ENGINE_CONTAINER" == *worker* ]]; then
+    BASE_ROOT="http://hexforge-surface-engine:8092"
+fi
+BASE="${BASE_ROOT%/}/api/surface"
+
+docker exec -i "$ENGINE_CONTAINER" python - <<PY
 import json, urllib.request
 from jsonschema import validate
 from hse.contracts import load_contract_schema
