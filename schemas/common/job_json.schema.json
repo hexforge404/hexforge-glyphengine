@@ -29,6 +29,8 @@
     },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
     "public_base_url": {
       "type": "string",
       "pattern": "^/assets/surface(/.*)?$"
@@ -40,7 +42,12 @@
       "properties": {
         "message": { "type": "string" },
         "code": { "type": ["string", "null"] },
-        "detail": { "type": ["string", "null"] }
+        "detail": { "type": ["string", "null"] },
+        "missing": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
       },
       "additionalProperties": false
     },
@@ -48,15 +55,15 @@
       "type": "object",
       "required": ["job_json", "previews", "textures", "models"],
       "properties": {
-        "job_json": { "type": "string", "minLength": 1 },
+        "job_json": { "type": "string", "pattern": "^/assets/surface/.*" },
         "previews": {
           "type": "object",
           "required": ["hero", "iso", "top", "side"],
           "properties": {
-            "hero": { "type": "string", "minLength": 1 },
-            "iso": { "type": "string", "minLength": 1 },
-            "top": { "type": "string", "minLength": 1 },
-            "side": { "type": "string", "minLength": 1 }
+            "hero": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "iso": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "top": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "side": { "type": "string", "pattern": "^/assets/surface/.*" }
           },
           "additionalProperties": false
         },
@@ -64,19 +71,25 @@
           "type": "object",
           "required": ["texture_png", "heightmap_png"],
           "properties": {
-            "texture_png": { "type": "string", "minLength": 1 },
-            "heightmap_png": { "type": "string", "minLength": 1 }
+            "texture_png": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "heightmap_png": { "type": "string", "pattern": "^/assets/surface/.*" }
           },
           "additionalProperties": false
         },
         "models": {
           "type": "object",
-          "required": ["enclosure_stl"],
           "properties": {
-            "enclosure_stl": { "type": "string", "minLength": 1 },
-            "enclosure_glb": { "type": ["string", "null"] }
+            "enclosure_stl": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "enclosure_glb": { "type": ["string", "null"], "pattern": "^/assets/surface/.*" },
+            "pi4b_case_base": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "pi4b_case_lid": { "type": "string", "pattern": "^/assets/surface/.*" },
+            "pi4b_case_panel": { "type": "string", "pattern": "^/assets/surface/.*" }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            { "required": ["enclosure_stl"] },
+            { "required": ["pi4b_case_base", "pi4b_case_lid"] }
+          ]
         }
       },
       "additionalProperties": false
@@ -87,5 +100,39 @@
       "additionalProperties": true
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": {
+        "required": ["error"],
+        "properties": { "error": { "type": "object" } }
+      },
+      "else": {
+        "if": { "properties": { "status": { "const": "complete" } } },
+        "then": {
+          "properties": { "error": { "type": "null" } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "complete" } } },
+      "then": { "required": ["started_at", "finished_at"] }
+    },
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": { "required": ["started_at", "finished_at"] }
+    },
+    {
+      "if": { "properties": { "status": { "const": "running" } } },
+      "then": {
+        "required": ["started_at"],
+        "properties": { "finished_at": false }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "queued" } } },
+      "then": { "properties": { "started_at": false, "finished_at": false } }
+    }
+  ]
 }

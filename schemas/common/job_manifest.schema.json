@@ -3,7 +3,7 @@
   "$id": "https://hexforgelabs.com/schemas/job_manifest.schema.json",
   "title": "HexForge job_manifest (Surface v1)",
   "type": "object",
-  "required": ["version", "job_id", "service", "updated_at", "public_root", "public"],
+  "required": ["version", "job_id", "service", "updated_at", "public_root", "public", "outputs", "geometry_check"],
   "properties": {
     "version": { "type": "string", "const": "v1" },
     "job_id": {
@@ -13,6 +13,9 @@
     },
     "service": { "type": "string", "const": "hexforge-glyphengine" },
     "updated_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
     "subfolder": { "type": ["string", "null"], "minLength": 1 },
     "public_root": {
       "type": "string",
@@ -20,7 +23,7 @@
     },
     "public": {
       "type": "object",
-      "required": ["job_json", "enclosure", "textures", "previews"],
+      "required": ["job_json", "textures", "previews"],
       "properties": {
         "job_json": { "type": "string", "pattern": "^/assets/.*" },
         "enclosure": {
@@ -28,6 +31,16 @@
           "required": ["stl"],
           "properties": {
             "stl": { "type": "string", "pattern": "^/assets/.*" }
+          },
+          "additionalProperties": false
+        },
+        "pi4b_case": {
+          "type": "object",
+          "required": ["base", "lid"],
+          "properties": {
+            "base": { "type": "string", "pattern": "^/assets/.*" },
+            "lid": { "type": "string", "pattern": "^/assets/.*" },
+            "panel": { "type": "string", "pattern": "^/assets/.*" }
           },
           "additionalProperties": false
         },
@@ -51,6 +64,59 @@
           },
           "additionalProperties": false
         }
+      },
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["enclosure"] },
+        { "required": ["pi4b_case"] }
+      ]
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "type", "exists"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "minLength": 1 },
+          "exists": { "type": "boolean" },
+          "size_bytes": { "type": "integer", "minimum": 0 },
+          "public_url": { "type": "string", "minLength": 1, "pattern": "^/assets/.*" },
+          "checksum": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+          "width": { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 },
+          "source_url": { "type": "string", "format": "uri" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "geometry_check": {
+      "type": "object",
+      "required": ["passed", "z_range_mm", "triangles", "bbox"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "z_range_mm": { "type": "number" },
+        "triangles": { "type": "integer", "minimum": 0 },
+        "bbox": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "max": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "additionalProperties": false
+        },
+        "reason": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     }
